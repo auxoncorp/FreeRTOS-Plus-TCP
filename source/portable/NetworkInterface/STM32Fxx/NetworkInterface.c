@@ -507,7 +507,10 @@ BaseType_t xNetworkInterfaceInitialise( void )
     {
         if( xPhyObject.ulLinkStatusMask != 0U )
         {
-            xETH.Instance->DMAIER |= ETH_DMA_ALL_INTS;
+            /* NOTE: in renode's SynopsysEthernetMAC impl bit 13 is StartStopTransmission
+             * and must be clear for Tx IRQs to fire */
+            /* xETH.Instance->DMAIER |= ETH_DMA_ALL_INTS; */
+            xETH.Instance->DMAIER |= (ETH_DMA_ALL_INTS & ~ETH_DMA_IT_FBE);
             xResult = pdPASS;
             FreeRTOS_printf( ( "Link Status is high\n" ) );
         }
@@ -948,7 +951,10 @@ static BaseType_t prvNetworkInterfaceInput( void )
          * Therefore, two sanity checks: */
         configASSERT( xReceivedLength <= EMAC_DMA_BUFFER_SIZE );
 
-        if( ( pxDMARxDescriptor->Status & ( ETH_DMARXDESC_CE | ETH_DMARXDESC_IPV4HCE | ETH_DMARXDESC_FT ) ) != ETH_DMARXDESC_FT )
+        /* NOTE: renode's SynopsysEthernetMAC impl doesn't set
+         * the ETH_DMARXDESC_FT bit (Ethernet) */
+        /* if( ( pxDMARxDescriptor->Status & ( ETH_DMARXDESC_CE | ETH_DMARXDESC_IPV4HCE | ETH_DMARXDESC_FT ) ) != ETH_DMARXDESC_FT ) */
+        if( ( pxDMARxDescriptor->Status & ( ETH_DMARXDESC_CE | ETH_DMARXDESC_IPV4HCE ) ) != 0 )
         {
             /* Not an Ethernet frame-type or a checksum error. */
             xAccepted = pdFALSE;
